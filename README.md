@@ -4,7 +4,7 @@ A command-line file manager built in Python. It lets you create, read, update, a
 
 I built this as a hands-on project while learning Python, specifically to put file handling, functions, exception handling, and `pathlib` into practice.
 
-This project is part of my [AI/ML Journey](https://github.com/Kk376/ai-ml-journey), where I'm documenting everything I learn from Python basics through to machine learning. You can follow along there to see what I've covered and where I'm headed next.
+This project is part of my [AI/ML Journey](https://github.com/kk376/ai-ml-journey), where I'm documenting everything I learn from Python basics through to machine learning. You can follow along there to see what I've covered and where I'm headed next.
 
 ## What It Does
 
@@ -50,7 +50,7 @@ No external dependencies — everything uses the standard library.
 ### Running It
 
 ```bash
-git clone https://github.com/Kk376/cli-python-crud-project.git
+git clone https://github.com/kk376/cli-python-crud-project.git
 cd cli-python-crud-project
 python main.py
 ```
