@@ -1,113 +1,217 @@
 from pathlib import Path
 import os
 
-def ReadFileAndFolder():
-    path = Path("")
+
+def list_files_and_folders():
+    """Display all files and folders in the current directory tree."""
+    path = Path(".")
     items = list(path.rglob("*"))
-    for i, items in enumerate(items):
-        print(f"{i + 1} : {items}")
+    if len(items) == 0:
+        print("  (No files or folders found)")
+        return
+    for i, item in enumerate(items):
+        # Mark directories so the user can distinguish them from files
+        label = "[DIR] " if item.is_dir() else "[FILE]"
+        print(f"  {i + 1} : {label} {item}")
 
 
-def createfile():
+def get_valid_int(prompt):
+    """Prompt the user for an integer, returning None on invalid input."""
+    raw = input(prompt)
     try:
-        ReadFileAndFolder()
-        name = input("Enter your file's name: ")
+        return int(raw)
+    except ValueError:
+        print("Invalid input. Please enter a number.")
+        return None
+
+
+def create_file():
+    try:
+        list_files_and_folders()
+        name = input("Enter your file's name: ").strip()
+        if name == "":
+            print("File name cannot be empty.")
+            return
         p = Path(name)
         if not p.exists():
+            data = input("Write what you want: ")
             with open(p, "w") as fs:
-                data = input("Write what you want: ")
                 fs.write(data)
-                fs.close()
-
             print("FILE CREATED SUCCESSFULLY!!")
         else:
             print("This file already exists....")
-
     except Exception as err:
-        print(f"An error occured -> {err}")
+        print(f"An error occurred -> {err}")
 
 
-def readfile():
+def read_file():
     try:
-        ReadFileAndFolder()
-        name = input("Type the name of the file: ")
+        list_files_and_folders()
+        name = input("Type the name of the file: ").strip()
+        if name == "":
+            print("File name cannot be empty.")
+            return
         p = Path(name)
         if p.exists() and p.is_file():
             with open(p, "r") as fs:
                 data = fs.read()
-                print(data)
-                fs.close()
+            print(data)
         else:
             print("The file doesn't exist....")
     except Exception as err:
-        print(f"An error occured -> {err}")
+        print(f"An error occurred -> {err}")
 
 
-def updatefile():
+def update_file():
     try:
-        ReadFileAndFolder()
-        name = input("Type the name of the file: ")
+        list_files_and_folders()
+        name = input("Type the name of the file: ").strip()
+        if name == "":
+            print("File name cannot be empty.")
+            return
         p = Path(name)
         if p.exists() and p.is_file():
-            print("Press 1 to change the name of your file: ")
-            print("Press 2 to overwrite the data in your file: ")
-            print("Press 3 to add content in your file: ")
+            print("1. Rename the file")
+            print("2. Overwrite the file content")
+            print("3. Append content to the file")
 
-            response = int(input("Enter an option:- "))
+            response = get_valid_int("Enter an option: ")
+            if response is None:
+                return
 
             if response == 1:
-                new_name = input("Enter the new name for your file: ")
+                new_name = input("Enter the new name for your file: ").strip()
+                if new_name == "":
+                    print("New name cannot be empty.")
+                    return
                 new_path = Path(new_name)
+                if new_path.exists():
+                    print("A file with that name already exists.")
+                    return
                 p.rename(new_path)
                 print("FILE RENAMED SUCCESSFULLY!!")
             elif response == 2:
+                data = input("Caution: This will overwrite your file content.\nWrite your content: ")
                 with open(p, "w") as fs:
-                    data = input("Caution: This will overwrite your file content.\nWrite your content: ")
                     fs.write(data)
-                    fs.close()
-                    print("FILE'S CONTENT OVERWRITTEN!!")
+                print("FILE'S CONTENT OVERWRITTEN!!")
             elif response == 3:
+                data = input("Write your content to add at the end of the file: ")
                 with open(p, "a") as fs:
-                    data = input("Write your content to add at the end of the file: ")
                     fs.write(" " + data)
-                    fs.close()
-                    print("FILE'S CONTENT UPDATED SUCCESSFULLY!!")
+                print("FILE'S CONTENT UPDATED SUCCESSFULLY!!")
             else:
                 print("Enter a valid option....")
-
+        else:
+            print("The file doesn't exist....")
     except Exception as err:
-        print(f"An error occured -> {err}")
+        print(f"An error occurred -> {err}")
 
 
-def deletefile():
+def delete_file():
     try:
-        ReadFileAndFolder()
-        name = input("Which file do you want to delete?\n")
+        list_files_and_folders()
+        name = input("Which file do you want to delete?\n").strip()
+        if name == "":
+            print("File name cannot be empty.")
+            return
         p = Path(name)
         if p.exists() and p.is_file():
-            os.remove(p)
-            print("FILE DELETED SUCCESSFULLY!!")
+            # Require explicit confirmation before deleting
+            confirm = input(f"Are you sure you want to delete '{name}'? (y/n): ").strip().lower()
+            if confirm == "y":
+                os.remove(p)
+                print("FILE DELETED SUCCESSFULLY!!")
+            else:
+                print("Deletion cancelled.")
         else:
             print("No such file exists....")
-
     except Exception as err:
-        print(f"An error occured -> {err}")
+        print(f"An error occurred -> {err}")
 
 
-print("Press 1 to create a file")
-print("Press 2 to read a file")
-print("Press 3 to update a file")
-print("Press 4 to delete a file")
+def create_folder():
+    try:
+        list_files_and_folders()
+        name = input("Enter the folder name to create: ").strip()
+        if name == "":
+            print("Folder name cannot be empty.")
+            return
+        p = Path(name)
+        if p.exists():
+            print("A file or folder with that name already exists.")
+            return
+        # exist_ok=False is default; we already checked above
+        os.makedirs(p)
+        print("FOLDER CREATED SUCCESSFULLY!!")
+    except Exception as err:
+        print(f"An error occurred -> {err}")
 
-check = int(input("Enter an option:- "))
 
-if check == 1:
-    createfile()
-elif check == 2:
-    readfile()
-elif check == 3:
-    updatefile()
-elif check == 4:
-    deletefile()
-else:
-    print("Enter a valid option....")
+def delete_folder():
+    try:
+        list_files_and_folders()
+        name = input("Which folder do you want to delete?\n").strip()
+        if name == "":
+            print("Folder name cannot be empty.")
+            return
+        p = Path(name)
+        if p.exists() and p.is_dir():
+            # Check if the folder is empty; refuse to delete non-empty folders
+            contents = os.listdir(p)
+            if len(contents) > 0:
+                print("Folder is not empty. Please remove its contents first.")
+                return
+            confirm = input(f"Are you sure you want to delete folder '{name}'? (y/n): ").strip().lower()
+            if confirm == "y":
+                os.rmdir(p)
+                print("FOLDER DELETED SUCCESSFULLY!!")
+            else:
+                print("Deletion cancelled.")
+        else:
+            print("No such folder exists....")
+    except Exception as err:
+        print(f"An error occurred -> {err}")
+
+
+def show_menu():
+    print("\n===== CLI File Manager =====")
+    print("1. Create a file")
+    print("2. Read a file")
+    print("3. Update a file")
+    print("4. Delete a file")
+    print("5. Create a folder")
+    print("6. Delete a folder")
+    print("7. List all files and folders")
+    print("0. Exit")
+
+
+def main():
+    while True:
+        show_menu()
+        choice = get_valid_int("Enter an option: ")
+        if choice is None:
+            continue
+
+        if choice == 1:
+            create_file()
+        elif choice == 2:
+            read_file()
+        elif choice == 3:
+            update_file()
+        elif choice == 4:
+            delete_file()
+        elif choice == 5:
+            create_folder()
+        elif choice == 6:
+            delete_folder()
+        elif choice == 7:
+            list_files_and_folders()
+        elif choice == 0:
+            print("Goodbye!")
+            break
+        else:
+            print("Enter a valid option....")
+
+
+main()
