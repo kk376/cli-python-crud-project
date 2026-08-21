@@ -1,6 +1,8 @@
 # CLI Python CRUD Project
 
-A command-line file and folder manager built in Python. Create, read, update, and delete files and folders from your terminal through a numbered menu that loops until you choose to exit.
+A command-line file and folder manager built in Python. Create, read, update, and delete files and folders from your terminal through an interactive numbered menu that loops until you choose to exit.
+
+All files and folders you create are isolated inside a dedicated `workspace/` directory, which is ignored by Git. This keeps your project root clean and prevents accidental modifications to project code.
 
 I built this as a hands-on project while learning Python, specifically to put file handling, functions, exception handling, and `pathlib` into practice.
 
@@ -8,7 +10,7 @@ This project is part of my [AI/ML Journey](https://github.com/kk376/ai-ml-journe
 
 ## What It Does
 
-When you run the program, you get a persistent menu:
+When you run the program, it creates a `workspace/` directory (if not already present) and displays a menu:
 
 ```
 ===== CLI File Manager =====
@@ -22,13 +24,13 @@ When you run the program, you get a persistent menu:
 0. Exit
 ```
 
-You can perform as many operations as you want in a single session. The menu returns after each action until you choose `0` to exit.
+The menu returns after each action until you choose `0` to exit.
 
-Before each file or folder operation, the program lists everything in the current directory tree with `[FILE]` and `[DIR]` labels so you can see what you're working with.
+Before each file or folder operation, the program lists the current contents of your workspace with `[FILE]` and `[DIR]` labels so you can see what you are working with.
 
 ### Create a File
 
-Prompts you for a filename and the content to write. If the file already exists, it tells you instead of overwriting.
+Prompts you for a filename (or nested path like `docs/notes.txt`) and content to write. If the file already exists, it warns you instead of overwriting.
 
 ### Read a File
 
@@ -38,8 +40,8 @@ Pick a file by name, and it prints the full contents to the terminal.
 
 Three sub-options:
 
-1. **Rename** the file (checks that the new name doesn't collide with an existing file)
-2. **Overwrite** the file's contents entirely (with a warning)
+1. **Rename** the file (checks that the new name does not collide with an existing file)
+2. **Overwrite** the file contents entirely (with a warning prompt)
 3. **Append** new content to the end of the file
 
 ### Delete a File
@@ -48,15 +50,15 @@ Asks for confirmation (`y/n`) before removing the file.
 
 ### Create a Folder
 
-Creates a new directory. Checks for name collisions before creating.
+Creates a new directory inside your workspace. Checks for name collisions before creating.
 
 ### Delete a Folder
 
-Only deletes empty folders (tells you to clear the contents first if not empty). Asks for confirmation before removing.
+Only deletes empty folders (warns you to clear the contents first if not empty). Asks for confirmation before removing.
 
 ### List Files and Folders
 
-Shows every file and folder in the current directory tree, labeled `[FILE]` or `[DIR]`.
+Shows every file and folder currently inside the workspace, labeled `[FILE]` or `[DIR]`.
 
 ## Getting Started
 
@@ -80,24 +82,29 @@ Follow the prompts.
 
 ```
 cli-python-crud-project/
-├── main.py        # All logic lives here
-└── README.md
+├── .gitignore         # Ignores workspace/ and bytecode cache
+├── README.md
+├── main.py            # All logic lives here
+└── workspace/         # Isolated user storage (untracked by git)
+    ├── notes.txt
+    └── docs/
 ```
 
-Single-file project. The code is organized into focused functions:
+Single-file implementation organized into focused functions:
 
 | Function | Purpose |
 |:--|:--|
-| `list_files_and_folders()` | Recursively lists all items in the current directory with `[FILE]`/`[DIR]` labels |
-| `get_valid_int()` | Safely reads integer input, returns `None` on invalid input instead of crashing |
-| `create_file()` | Creates a new file with user-provided content |
-| `read_file()` | Reads and prints a file's contents |
-| `update_file()` | Rename, overwrite, or append to a file |
-| `delete_file()` | Deletes a file after confirmation |
-| `create_folder()` | Creates a new directory |
-| `delete_folder()` | Deletes an empty directory after confirmation |
+| `ensure_workspace()` | Creates the `workspace/` directory if missing |
+| `list_files_and_folders()` | Recursively lists all items inside `workspace/` with `[FILE]`/`[DIR]` labels |
+| `get_valid_int()` | Safely reads integer input, returning `None` on invalid input instead of crashing |
+| `create_file()` | Creates a new file inside `workspace/` with user-provided content |
+| `read_file()` | Reads and prints a file's contents from `workspace/` |
+| `update_file()` | Rename, overwrite, or append to a file in `workspace/` |
+| `delete_file()` | Deletes a file in `workspace/` after confirmation |
+| `create_folder()` | Creates a new directory in `workspace/` |
+| `delete_folder()` | Deletes an empty directory in `workspace/` after confirmation |
 | `show_menu()` | Displays the main menu |
-| `main()` | Runs the menu loop |
+| `main()` | Initializes the workspace and runs the menu loop |
 
 ## Python Concepts Used
 
@@ -114,35 +121,28 @@ Single-file project. The code is organized into focused functions:
 | For loop | Iterating over directory contents with `enumerate()` |
 | Exception handling | `try/except` wrapping every operation, plus targeted `ValueError` handling in input validation |
 | File handling | `open()` with `"r"`, `"w"`, `"a"` modes inside `with` blocks |
-| pathlib | `Path`, `.exists()`, `.is_file()`, `.is_dir()`, `.rglob()`, `.rename()` |
+| pathlib | `Path`, `.exists()`, `.is_file()`, `.is_dir()`, `.rglob()`, `.rename()`, `.relative_to()` |
 | os module | `os.remove()`, `os.rmdir()`, `os.makedirs()`, `os.listdir()` |
-| Type conversion | `int()` for menu choices with proper error handling |
+| Type conversion | `int()` for menu choices with error handling |
 | Comparison operators | `==`, `>`, `and`, `not` for validation logic |
 
 ## What Changed from v1
 
-The original version had several issues that are now fixed:
-
-- **Menu loop**: The program no longer exits after a single operation. It keeps running until you choose to quit.
-- **Input validation**: Typing a non-integer at any prompt no longer crashes the program with a `ValueError`.
-- **Empty input handling**: Blank filenames and folder names are caught and rejected.
-- **Delete confirmation**: Both file and folder deletion now require a `y/n` confirmation.
-- **Folder support**: You can now create and delete folders, not just files.
-- **Variable shadowing fix**: `ReadFileAndFolder()` had a bug where `items` was used as both the list and the loop variable. Fixed.
-- **Consistent naming**: All functions now use `snake_case` instead of a mix of `PascalCase` and `lowercase`.
-- **Redundant close calls removed**: `fs.close()` inside `with` blocks was unnecessary (the context manager handles it).
-- **Rename collision check**: Renaming a file now checks if the target name already exists.
-- **Hidden files filtered**: Directory listing ignores hidden files and directories (like `.git`) and `__pycache__` so the menu only shows relevant project files.
-- **Directory labels**: The listing function marks entries with `[FILE]` or `[DIR]` so you can tell them apart.
-- **Typo fix**: "occured" corrected to "occurred".
+- **Workspace isolation**: All user files are stored in `workspace/`, which is ignored by Git. Your repository stays clean and project code (`main.py`, `README.md`) cannot be deleted or overwritten by the CLI tool.
+- **Menu loop**: The program runs continuously until you choose option `0` to quit.
+- **Input validation**: Typing letters or symbols at numeric prompts is caught safely via `get_valid_int()` instead of crashing with a `ValueError`.
+- **Empty input handling**: Blank filenames and folder names are rejected.
+- **Delete confirmation**: File and folder deletions require explicit `y/n` confirmation.
+- **Folder CRUD**: Added support for creating folders and safely deleting empty folders.
+- **Variable shadowing fix**: Fixed the loop variable shadowing bug in the listing function.
+- **Consistent naming**: All functions use `snake_case`.
+- **Redundant close calls removed**: Cleaned up manual `.close()` calls inside `with` context manager blocks.
+- **Rename collision check**: Renaming checks for existing filenames before moving.
+- **Directory labels**: `[FILE]` and `[DIR]` prefixes distinguish files from directories.
 
 ## What I Learned Building This
 
-File handling was the main goal, but this project ended up touching almost every concept I'd studied. The update function with its sub-menu was probably the trickiest part, juggling multiple file modes (`"w"` vs `"a"`) and making sure `Path.rename()` worked correctly.
-
-The `pathlib` module turned out to be cleaner than raw `os.path` calls for most things, though I still needed `os.remove()`, `os.rmdir()`, and `os.makedirs()` for operations `pathlib` doesn't cover directly.
-
-Adding input validation taught me how `try/except` with specific exception types (`ValueError`) is more useful than blanket `Exception` catches, and how returning `None` from a helper function can signal "bad input" to the caller without crashing.
+File handling was the primary goal, but this project touches almost every foundational Python concept. Managing file paths with `pathlib.Path` made manipulating nested files straightforward, while isolating user storage in a dedicated folder demonstrated how practical CLI tools separate application code from user data.
 
 ## License
 

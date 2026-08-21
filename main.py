@@ -1,30 +1,30 @@
 from pathlib import Path
 import os
 
+# Dedicated workspace directory so user-created files stay isolated from project code
+# and are automatically ignored by Git via .gitignore.
+WORKSPACE_DIR = Path("workspace")
+
+
+def ensure_workspace():
+    """Create the workspace directory if it doesn't already exist."""
+    os.makedirs(WORKSPACE_DIR, exist_ok=True)
+
 
 def list_files_and_folders():
-    """Display all files and folders in the current directory tree."""
-    path = Path(".")
-    all_items = list(path.rglob("*"))
+    """Display all files and folders currently inside the workspace."""
+    ensure_workspace()
+    all_items = list(WORKSPACE_DIR.rglob("*"))
 
-    # Filter out hidden entries (.git, .gitignore, etc.) and __pycache__
-    items = []
-    for item in all_items:
-        skip = False
-        for part in item.parts:
-            if part.startswith(".") or part == "__pycache__":
-                skip = True
-                break
-        if not skip:
-            items.append(item)
-
-    if len(items) == 0:
-        print("  (No files or folders found)")
+    if len(all_items) == 0:
+        print("  (Workspace is empty - no files or folders found)")
         return
-    for i, item in enumerate(items):
-        # Mark directories so the user can distinguish them from files
+
+    for i, item in enumerate(all_items):
+        # Display the path relative to the workspace folder
+        rel_path = item.relative_to(WORKSPACE_DIR)
         label = "[DIR] " if item.is_dir() else "[FILE]"
-        print(f"  {i + 1} : {label} {item}")
+        print(f"  {i + 1} : {label} {rel_path}")
 
 
 def get_valid_int(prompt):
@@ -44,8 +44,11 @@ def create_file():
         if name == "":
             print("File name cannot be empty.")
             return
-        p = Path(name)
+
+        p = WORKSPACE_DIR / name
         if not p.exists():
+            # Create parent directories if a nested path is given (e.g. docs/notes.txt)
+            p.parent.mkdir(parents=True, exist_ok=True)
             data = input("Write what you want: ")
             with open(p, "w") as fs:
                 fs.write(data)
@@ -63,7 +66,8 @@ def read_file():
         if name == "":
             print("File name cannot be empty.")
             return
-        p = Path(name)
+
+        p = WORKSPACE_DIR / name
         if p.exists() and p.is_file():
             with open(p, "r") as fs:
                 data = fs.read()
@@ -81,7 +85,8 @@ def update_file():
         if name == "":
             print("File name cannot be empty.")
             return
-        p = Path(name)
+
+        p = WORKSPACE_DIR / name
         if p.exists() and p.is_file():
             print("1. Rename the file")
             print("2. Overwrite the file content")
@@ -96,10 +101,11 @@ def update_file():
                 if new_name == "":
                     print("New name cannot be empty.")
                     return
-                new_path = Path(new_name)
+                new_path = WORKSPACE_DIR / new_name
                 if new_path.exists():
                     print("A file with that name already exists.")
                     return
+                new_path.parent.mkdir(parents=True, exist_ok=True)
                 p.rename(new_path)
                 print("FILE RENAMED SUCCESSFULLY!!")
             elif response == 2:
@@ -127,7 +133,8 @@ def delete_file():
         if name == "":
             print("File name cannot be empty.")
             return
-        p = Path(name)
+
+        p = WORKSPACE_DIR / name
         if p.exists() and p.is_file():
             # Require explicit confirmation before deleting
             confirm = input(f"Are you sure you want to delete '{name}'? (y/n): ").strip().lower()
@@ -149,12 +156,12 @@ def create_folder():
         if name == "":
             print("Folder name cannot be empty.")
             return
-        p = Path(name)
+
+        p = WORKSPACE_DIR / name
         if p.exists():
             print("A file or folder with that name already exists.")
             return
-        # exist_ok=False is default; we already checked above
-        os.makedirs(p)
+        os.makedirs(p, exist_ok=True)
         print("FOLDER CREATED SUCCESSFULLY!!")
     except Exception as err:
         print(f"An error occurred -> {err}")
@@ -167,7 +174,8 @@ def delete_folder():
         if name == "":
             print("Folder name cannot be empty.")
             return
-        p = Path(name)
+
+        p = WORKSPACE_DIR / name
         if p.exists() and p.is_dir():
             # Check if the folder is empty; refuse to delete non-empty folders
             contents = os.listdir(p)
@@ -199,6 +207,7 @@ def show_menu():
 
 
 def main():
+    ensure_workspace()
     while True:
         show_menu()
         choice = get_valid_int("Enter an option: ")
