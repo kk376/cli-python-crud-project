@@ -5,7 +5,19 @@ import os
 def list_files_and_folders():
     """Display all files and folders in the current directory tree."""
     path = Path(".")
-    items = list(path.rglob("*"))
+    all_items = list(path.rglob("*"))
+
+    # Filter out hidden entries (.git, .gitignore, etc.) and __pycache__
+    items = []
+    for item in all_items:
+        skip = False
+        for part in item.parts:
+            if part.startswith(".") or part == "__pycache__":
+                skip = True
+                break
+        if not skip:
+            items.append(item)
+
     if len(items) == 0:
         print("  (No files or folders found)")
         return
