@@ -132,6 +132,7 @@ The original version had several issues that are now fixed:
 - **Consistent naming**: All functions now use `snake_case` instead of a mix of `PascalCase` and `lowercase`.
 - **Redundant close calls removed**: `fs.close()` inside `with` blocks was unnecessary (the context manager handles it).
 - **Rename collision check**: Renaming a file now checks if the target name already exists.
+- **Hidden files filtered**: Directory listing ignores hidden files and directories (like `.git`) and `__pycache__` so the menu only shows relevant project files.
 - **Directory labels**: The listing function marks entries with `[FILE]` or `[DIR]` so you can tell them apart.
 - **Typo fix**: "occured" corrected to "occurred".
 
