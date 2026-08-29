@@ -6,15 +6,38 @@ import os
 WORKSPACE_DIR = Path("workspace")
 
 
-def ensure_workspace():
-    """Create the workspace directory if it doesn't already exist."""
-    os.makedirs(WORKSPACE_DIR, exist_ok=True)
+def ensure_workspace() -> Path:
+    """Create and return the resolved workspace directory."""
+    WORKSPACE_DIR.mkdir(parents=True, exist_ok=True)
+    return WORKSPACE_DIR.resolve()
+
+
+def resolve_safe_path(user_input: str) -> Path | None:
+    """
+    Resolve and validate that the requested path strictly resides within the workspace.
+    Prevents path traversal vulnerabilities (CWE-22 / CWE-23).
+    """
+    cleaned = user_input.strip()
+    if not cleaned:
+        print("Path cannot be empty.")
+        return None
+
+    workspace_root = ensure_workspace()
+    # Normalize and resolve absolute target path
+    target_path = (workspace_root / cleaned).resolve()
+
+    try:
+        target_path.relative_to(workspace_root)
+        return target_path
+    except ValueError:
+        print("Security Error: Path traversal outside workspace is forbidden.")
+        return None
 
 
 def list_files_and_folders():
     """Display all files and folders currently inside the workspace."""
-    ensure_workspace()
-    all_items = list(WORKSPACE_DIR.rglob("*"))
+    workspace_root = ensure_workspace()
+    all_items = list(workspace_root.rglob("*"))
 
     if len(all_items) == 0:
         print("  (Workspace is empty - no files or folders found)")
@@ -22,12 +45,12 @@ def list_files_and_folders():
 
     for i, item in enumerate(all_items):
         # Display the path relative to the workspace folder
-        rel_path = item.relative_to(WORKSPACE_DIR)
+        rel_path = item.relative_to(workspace_root)
         label = "[DIR] " if item.is_dir() else "[FILE]"
         print(f"  {i + 1} : {label} {rel_path}")
 
 
-def get_valid_int(prompt):
+def get_valid_int(prompt: str) -> int | None:
     """Prompt the user for an integer, returning None on invalid input."""
     raw = input(prompt)
     try:
@@ -40,17 +63,16 @@ def get_valid_int(prompt):
 def create_file():
     try:
         list_files_and_folders()
-        name = input("Enter your file's name: ").strip()
-        if name == "":
-            print("File name cannot be empty.")
+        name = input("Enter your file's name: ")
+        p = resolve_safe_path(name)
+        if p is None:
             return
 
-        p = WORKSPACE_DIR / name
         if not p.exists():
             # Create parent directories if a nested path is given (e.g. docs/notes.txt)
             p.parent.mkdir(parents=True, exist_ok=True)
             data = input("Write what you want: ")
-            with open(p, "w") as fs:
+            with open(p, "w", encoding="utf-8") as fs:
                 fs.write(data)
             print("FILE CREATED SUCCESSFULLY!!")
         else:
@@ -62,14 +84,13 @@ def create_file():
 def read_file():
     try:
         list_files_and_folders()
-        name = input("Type the name of the file: ").strip()
-        if name == "":
-            print("File name cannot be empty.")
+        name = input("Type the name of the file: ")
+        p = resolve_safe_path(name)
+        if p is None:
             return
 
-        p = WORKSPACE_DIR / name
         if p.exists() and p.is_file():
-            with open(p, "r") as fs:
+            with open(p, "r", encoding="utf-8") as fs:
                 data = fs.read()
             print(data)
         else:
@@ -81,12 +102,11 @@ def read_file():
 def update_file():
     try:
         list_files_and_folders()
-        name = input("Type the name of the file: ").strip()
-        if name == "":
-            print("File name cannot be empty.")
+        name = input("Type the name of the file: ")
+        p = resolve_safe_path(name)
+        if p is None:
             return
 
-        p = WORKSPACE_DIR / name
         if p.exists() and p.is_file():
             print("1. Rename the file")
             print("2. Overwrite the file content")
@@ -97,11 +117,10 @@ def update_file():
                 return
 
             if response == 1:
-                new_name = input("Enter the new name for your file: ").strip()
-                if new_name == "":
-                    print("New name cannot be empty.")
+                new_name = input("Enter the new name for your file: ")
+                new_path = resolve_safe_path(new_name)
+                if new_path is None:
                     return
-                new_path = WORKSPACE_DIR / new_name
                 if new_path.exists():
                     print("A file with that name already exists.")
                     return
@@ -110,12 +129,12 @@ def update_file():
                 print("FILE RENAMED SUCCESSFULLY!!")
             elif response == 2:
                 data = input("Caution: This will overwrite your file content.\nWrite your content: ")
-                with open(p, "w") as fs:
+                with open(p, "w", encoding="utf-8") as fs:
                     fs.write(data)
                 print("FILE'S CONTENT OVERWRITTEN!!")
             elif response == 3:
                 data = input("Write your content to add at the end of the file: ")
-                with open(p, "a") as fs:
+                with open(p, "a", encoding="utf-8") as fs:
                     fs.write(" " + data)
                 print("FILE'S CONTENT UPDATED SUCCESSFULLY!!")
             else:
@@ -129,17 +148,15 @@ def update_file():
 def delete_file():
     try:
         list_files_and_folders()
-        name = input("Which file do you want to delete?\n").strip()
-        if name == "":
-            print("File name cannot be empty.")
+        name = input("Which file do you want to delete?\n")
+        p = resolve_safe_path(name)
+        if p is None:
             return
 
-        p = WORKSPACE_DIR / name
         if p.exists() and p.is_file():
-            # Require explicit confirmation before deleting
-            confirm = input(f"Are you sure you want to delete '{name}'? (y/n): ").strip().lower()
+            confirm = input(f"Are you sure you want to delete '{p.name}'? (y/n): ").strip().lower()
             if confirm == "y":
-                os.remove(p)
+                p.unlink()
                 print("FILE DELETED SUCCESSFULLY!!")
             else:
                 print("Deletion cancelled.")
@@ -152,16 +169,15 @@ def delete_file():
 def create_folder():
     try:
         list_files_and_folders()
-        name = input("Enter the folder name to create: ").strip()
-        if name == "":
-            print("Folder name cannot be empty.")
+        name = input("Enter the folder name to create: ")
+        p = resolve_safe_path(name)
+        if p is None:
             return
 
-        p = WORKSPACE_DIR / name
         if p.exists():
             print("A file or folder with that name already exists.")
             return
-        os.makedirs(p, exist_ok=True)
+        p.mkdir(parents=True, exist_ok=True)
         print("FOLDER CREATED SUCCESSFULLY!!")
     except Exception as err:
         print(f"An error occurred -> {err}")
@@ -170,21 +186,19 @@ def create_folder():
 def delete_folder():
     try:
         list_files_and_folders()
-        name = input("Which folder do you want to delete?\n").strip()
-        if name == "":
-            print("Folder name cannot be empty.")
+        name = input("Which folder do you want to delete?\n")
+        p = resolve_safe_path(name)
+        if p is None:
             return
 
-        p = WORKSPACE_DIR / name
         if p.exists() and p.is_dir():
-            # Check if the folder is empty; refuse to delete non-empty folders
-            contents = os.listdir(p)
+            contents = list(p.iterdir())
             if len(contents) > 0:
                 print("Folder is not empty. Please remove its contents first.")
                 return
-            confirm = input(f"Are you sure you want to delete folder '{name}'? (y/n): ").strip().lower()
+            confirm = input(f"Are you sure you want to delete folder '{p.name}'? (y/n): ").strip().lower()
             if confirm == "y":
-                os.rmdir(p)
+                p.rmdir()
                 print("FOLDER DELETED SUCCESSFULLY!!")
             else:
                 print("Deletion cancelled.")
@@ -235,4 +249,5 @@ def main():
             print("Enter a valid option....")
 
 
-main()
+if __name__ == "__main__":
+    main()
