@@ -26,7 +26,7 @@ When you run the program, it creates a `workspace/` directory (if not already pr
 
 The menu returns after each action until you choose `0` to exit.
 
-Before each file or folder operation, the program lists the current contents of your workspace with `[FILE]` and `[DIR]` labels so you can see what you are working with.
+Before each file or folder operation, the program lists the current contents of your workspace with numbers and `[FILE]` / `[DIR]` labels. You can select an item either by entering its number (e.g. `1`, `2`) or its relative path (e.g. `notes.txt`).
 
 ### Create a File
 
@@ -34,11 +34,11 @@ Prompts you for a filename (or nested path like `docs/notes.txt`) and content to
 
 ### Read a File
 
-Pick a file by name, and it prints the full contents to the terminal.
+Pick a file by number or name, and it prints the full contents to the terminal.
 
 ### Update a File
 
-Three sub-options:
+Pick a file by number or name, then choose from three sub-options:
 
 1. **Rename** the file (checks that the new name does not collide with an existing file)
 2. **Overwrite** the file contents entirely (with a warning prompt)
@@ -46,7 +46,7 @@ Three sub-options:
 
 ### Delete a File
 
-Asks for confirmation (`y/n`) before removing the file.
+Pick a file by number or name. Asks for confirmation (`y/n`) before removing the file.
 
 ### Create a Folder
 
@@ -54,19 +54,19 @@ Creates a new directory inside your workspace. Checks for name collisions before
 
 ### Delete a Folder
 
-Only deletes empty folders (warns you to clear the contents first if not empty). Asks for confirmation before removing.
+Pick a folder by number or name. Only deletes empty folders (warns you to clear the contents first if not empty). Asks for confirmation before removing.
 
 ### List Files and Folders
 
-Shows every file and folder currently inside the workspace, labeled `[FILE]` or `[DIR]`.
+Shows every file and folder currently inside the workspace, sorted with directories first and files second, labeled `[FILE]` or `[DIR]`.
 
 ## Getting Started
 
 ### Prerequisites
 
-- Python 3.6 or higher (for f-strings and `pathlib` support)
+- Python 3.7 or higher (standard library only)
 
-No external dependencies. Everything uses the standard library.
+No external dependencies required.
 
 ### Running It
 
@@ -78,33 +78,38 @@ python main.py
 
 Follow the prompts.
 
+### Running Tests
+
+Run the test suite using Python's built-in `unittest` runner:
+
+```bash
+python -m unittest discover tests
+```
+
 ## Project Structure
 
 ```
 cli-python-crud-project/
-├── .gitignore         # Ignores workspace/ and bytecode cache
+├── .gitignore             # Ignores workspace/ and bytecode cache
 ├── README.md
-├── main.py            # All logic lives here
-└── workspace/         # Isolated user storage (untracked by git)
+├── file_ops.py            # Core file operations, security validation, and domain models
+├── main.py                # Interactive CLI loop, menus, and user I/O
+├── tests/
+│   └── test_file_ops.py   # Unit test suite using standard library unittest
+└── workspace/             # Isolated user storage (untracked by git)
     ├── notes.txt
     └── docs/
 ```
 
-Single-file implementation organized into focused functions:
+### Module Breakdown
 
-| Function | Purpose |
+| Module / Component | Purpose |
 |:--|:--|
-| `ensure_workspace()` | Creates the `workspace/` directory if missing |
-| `list_files_and_folders()` | Recursively lists all items inside `workspace/` with `[FILE]`/`[DIR]` labels |
-| `get_valid_int()` | Safely reads integer input, returning `None` on invalid input instead of crashing |
-| `create_file()` | Creates a new file inside `workspace/` with user-provided content |
-| `read_file()` | Reads and prints a file's contents from `workspace/` |
-| `update_file()` | Rename, overwrite, or append to a file in `workspace/` |
-| `delete_file()` | Deletes a file in `workspace/` after confirmation |
-| `create_folder()` | Creates a new directory in `workspace/` |
-| `delete_folder()` | Deletes an empty directory in `workspace/` after confirmation |
-| `show_menu()` | Displays the main menu |
-| `main()` | Initializes the workspace and runs the menu loop |
+| `file_ops.FileManager` | Encapsulates workspace path resolution, CRUD operations, deterministic listing, and dual selection |
+| `file_ops.WorkspaceItem` | Readonly dataclass representing a workspace item (`path`, `rel_path`, `is_dir`) |
+| `file_ops.FileOpsError` | Domain exception hierarchy (`PathSecurityError`, `InvalidTargetError`, `ItemAlreadyExistsError`, `ItemNotFoundError`, `DirectoryNotEmptyError`) |
+| `main.py` | Handles terminal interaction, formatted menus, input validation, and signals |
+| `tests/test_file_ops.py` | 16 automated test cases verifying CRUD behaviors, edge cases, and path security |
 
 ## Python Concepts Used
 
@@ -112,19 +117,30 @@ Single-file implementation organized into focused functions:
 |:--|:--|
 | Variables | Storing user input, file paths, menu choices |
 | Data types | Strings for filenames/content, integers for menu selection, booleans for checks |
+| Dataclasses | `@dataclass(frozen=True)` for structured, immutable `WorkspaceItem` records |
+| Custom exceptions | Subclassing `Exception` into a domain hierarchy (`PathSecurityError`, etc.) |
 | Input/Output | `input()` for prompts, `print()` for feedback |
 | String formatting | f-strings for error messages, confirmation prompts, and display |
 | String methods | `.strip()` and `.lower()` for input sanitization |
 | If/Elif/Else | Menu routing, file existence checks, update sub-menu, confirmation handling |
-| Functions | Each operation is its own function, plus helpers for input validation and menu display |
+| Functions & classes | Modular separation between interactive CLI functions and domain class methods |
 | While loop | Main menu loop that runs until the user exits |
 | For loop | Iterating over directory contents with `enumerate()` |
-| Exception handling | `try/except` wrapping every operation, plus targeted `ValueError` handling in input validation |
+| Exception handling | Structured `try/except` catching domain errors and gracefully intercepting `KeyboardInterrupt` / `EOFError` |
 | File handling | `open()` with `"r"`, `"w"`, `"a"` modes inside `with` blocks |
 | pathlib | `Path`, `.exists()`, `.is_file()`, `.is_dir()`, `.rglob()`, `.rename()`, `.relative_to()` |
-| os module | `os.remove()`, `os.rmdir()`, `os.makedirs()`, `os.listdir()` |
-| Type conversion | `int()` for menu choices with error handling |
+| Unit testing | `unittest.TestCase` and `tempfile.TemporaryDirectory` for zero-dependency test isolation |
+| Type conversion | `int()` for menu choices and dual selection resolution |
 | Comparison operators | `==`, `>`, `and`, `not` for validation logic |
+
+## Improvements in v2
+
+- **Separation of Concerns**: Extracted filesystem CRUD logic and security validation into an independent `file_ops.py` domain module (`FileManager`). `main.py` is now purely dedicated to CLI interaction.
+- **Dual Selection**: Whenever a file or directory needs to be selected, enter either the displayed item number (e.g. `1`, `2`) or the relative path string directly.
+- **Path Traversal & Root Hardening**: Sanitized relative path resolution to neutralize root resets from leading slashes, and explicitly blocked targeting or modifying the workspace root directory itself.
+- **Deterministic Listing**: Directories are listed first alphabetically, followed by files alphabetically. Hidden dotfiles and `__pycache__` directories are filtered out automatically.
+- **Graceful Termination**: Intercepts Ctrl+C (`KeyboardInterrupt`) and Ctrl+D (`EOFError`) to exit cleanly without dumping stack traces.
+- **Unit Test Coverage**: Added an automated test suite under `tests/test_file_ops.py` using Python's built-in `unittest` module, keeping zero external dependencies.
 
 ## What Changed from v1
 
